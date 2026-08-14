@@ -1,0 +1,6 @@
+# Carpeta de Música Local
+
+Coloca aquí tus canciones en formato MP3, WAV, OGG o FLAC (puedes organizarlas en subcarpetas si lo deseas).
+El bot indexará automáticamente los títulos y artistas para que tus espectadores puedan solicitarlas en el chat con:
+
+    !song <nombre de canción o artista>

@@ -1,0 +1,48 @@
+# Entornos virtuales de Python
+venv/
+.venv/
+env/
+ENV/
+
+# Archivos de configuración local y credenciales (NUNCA SUBIR A GIT)
+config.yaml
+.env
+*.local.yaml
+.cache
+.cache-*
+.spotipyoauthcache
+
+# Archivos de caché y compilación de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs y bases de datos locales
+*.log
+logs/
+data/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db

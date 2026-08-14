@@ -1,0 +1,10 @@
+customtkinter>=5.2.0
+Pillow>=10.0.0
+yt-dlp>=2026.7.4
+TikTokLive>=6.3.0
+PyYAML>=6.0.1
+colorama>=0.4.6
+rapidfuzz>=3.0.0
+mutagen>=1.47.0
+pygame-ce>=2.5.0
+spotipy>=2.24.0

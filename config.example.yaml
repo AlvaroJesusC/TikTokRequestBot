@@ -1,0 +1,44 @@
+# ==============================================================================
+# CONFIGURACIÓN DEL BOT DE SOLICITUDES DE CANCIONES PARA TIKTOK LIVE
+# ==============================================================================
+# INSTRUCCIONES:
+# 1. Haz una copia de este archivo y nómbralo 'config.yaml'.
+# 2. Rellena los datos con tu usuario de TikTok y tus credenciales de Spotify / Euler (opcionales).
+# 3. NUNCA subas 'config.yaml' a ningún repositorio público o control de versiones.
+# ==============================================================================
+
+# Modo de reproducción inicial: "youtube", "spotify" o "local"
+player_mode: "youtube"
+
+tiktok:
+  # Tu nombre de usuario de TikTok (ejemplo: @mi_usuario)
+  unique_id: "tu_usuario_de_tiktok"
+
+  # Clave API de Euler Stream (Opcional, tier gratuito Community)
+  euler_api_key: ""
+
+spotify:
+  # Configuración para vincular Spotify Connect oficial (Requiere Spotify Premium)
+  client_id: "TU_SPOTIFY_CLIENT_ID"
+  client_secret: "TU_SPOTIFY_CLIENT_SECRET"
+  redirect_uri: "http://127.0.0.1:8888/callback"
+  device_name: ""
+
+permissions:
+  # Tu usuario principal de TikTok (permisos totales)
+  streamer_id: "tu_usuario_de_tiktok"
+
+  # Lista de moderadores autorizados para comandos (!skip, !clear, !pause, !resume)
+  moderators:
+    - "moderador1"
+    - "moderador2"
+
+audio:
+  # Carpeta para música local
+  music_folder: "./music"
+  allowed_extensions:
+    - ".mp3"
+    - ".wav"
+    - ".ogg"
+    - ".flac"
+  default_volume: 0.8
