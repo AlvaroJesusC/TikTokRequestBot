@@ -23,6 +23,7 @@ except ImportError:
 
 from bot.live_bot import LiveBotOrchestrator
 from bot.config_manager import load_config, save_config
+from updater import APP_VERSION, check_updates_background
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -35,7 +36,7 @@ class DesktopApp(ctk.CTk):
         self.config = load_config()
 
         # Ventana de Windows 11
-        self.title("🎵 TikTok LIVE SongBot - YouTube & Spotify Controller")
+        self.title(f"🎵 TikTok LIVE SongBot {APP_VERSION} - YouTube & Spotify Controller")
         self.geometry("1120x780")
         self.minsize(980, 680)
 
@@ -59,6 +60,10 @@ class DesktopApp(ctk.CTk):
         self.after(1000, self._playback_refresh_loop)
         self._load_initial_values()
 
+        # Comprobar actualizaciones automáticamente en segundo plano al iniciar
+        self.after(2500, lambda: check_updates_background(self, silent=True, log_callback=self.append_log))
+
+
     def _run_async_event_loop(self):
         asyncio.set_event_loop(self.async_loop)
         self.async_loop.run_forever()
@@ -78,7 +83,23 @@ class DesktopApp(ctk.CTk):
         
         title_frame = ctk.CTkFrame(brand_frame, fg_color="transparent")
         title_frame.pack(side="left")
-        ctk.CTkLabel(title_frame, text="TikTok LIVE SongBot", font=("Segoe UI", 16, "bold")).pack(anchor="w")
+        
+        title_row = ctk.CTkFrame(title_frame, fg_color="transparent")
+        title_row.pack(anchor="w")
+        ctk.CTkLabel(title_row, text="TikTok LIVE SongBot", font=("Segoe UI", 16, "bold")).pack(side="left")
+        
+        lbl_ver = ctk.CTkLabel(
+            title_row,
+            text=APP_VERSION,
+            font=("Segoe UI", 10, "bold"),
+            fg_color="#1e293b",
+            text_color="#38bdf8",
+            corner_radius=6,
+            padx=6,
+            pady=1
+        )
+        lbl_ver.pack(side="left", padx=6)
+
         ctk.CTkLabel(title_frame, text="Comando: !play <canción>", font=("Segoe UI", 11), text_color="#94a3b8").pack(anchor="w")
 
         # Selector de Modo (Rojo YouTube, Verde Spotify, Amarillo Local)
@@ -805,7 +826,7 @@ class DesktopApp(ctk.CTk):
     def _open_settings_dialog(self):
         dialog = ctk.CTkToplevel(self)
         dialog.title("⚙️ Ajustes & Gestión de Caché")
-        dialog.geometry("480x300")
+        dialog.geometry("480x420")
         dialog.resizable(False, False)
         dialog.attributes("-topmost", True)
 
@@ -845,6 +866,29 @@ class DesktopApp(ctk.CTk):
             font=("Segoe UI", 12, "bold")
         )
         btn_clear.pack(padx=20, pady=6, fill="x")
+
+        # --- Sección de Actualizaciones ---
+        sep = ctk.CTkFrame(dialog, height=1, fg_color="#334155")
+        sep.pack(fill="x", padx=20, pady=(10, 6))
+
+        ctk.CTkLabel(
+            dialog,
+            text=f"🚀 Actualizaciones  (Versión actual: {APP_VERSION})",
+            font=("Segoe UI", 13, "bold")
+        ).pack(padx=20, pady=(6, 4), anchor="w")
+
+        btn_check_updates = ctk.CTkButton(
+            dialog,
+            text="🔍 Buscar Actualizaciones en GitHub",
+            command=lambda: (
+                dialog.destroy(),
+                check_updates_background(self, silent=False, log_callback=self.append_log)
+            ),
+            fg_color="#1e40af",
+            hover_color="#1d4ed8",
+            font=("Segoe UI", 12, "bold")
+        )
+        btn_check_updates.pack(padx=20, pady=6, fill="x")
 
         btn_close = ctk.CTkButton(
             dialog,
