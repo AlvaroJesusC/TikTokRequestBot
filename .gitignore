@@ -39,6 +39,21 @@ wheels/
 logs/
 data/
 
+# Archivos de música descargados localmente (mantener LEEME.txt)
+music/*.mp3
+music/*.wav
+music/*.ogg
+music/*.flac
+music/*.m4a
+
+# Builds y temporales del actualizador
+dist/
+build/
+*.spec
+*.tmp
+updater.bat
+.updater_temp/
+
 # IDEs y editores
 .vscode/
 .idea/
@@ -46,3 +61,4 @@ data/
 *.sublime-workspace
 .DS_Store
 Thumbs.db
+
