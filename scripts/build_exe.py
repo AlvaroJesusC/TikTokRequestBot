@@ -12,6 +12,14 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 
+# Fix encoding para emojis en consola de Windows
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 def build_executable():
     print("=" * 60)
@@ -36,15 +44,25 @@ def build_executable():
             print(f"[CLEAN] Eliminando carpeta {d.name}...")
             shutil.rmtree(d, ignore_errors=True)
 
-    # 3. Argumentos de PyInstaller
+    # 3. Localizar la DLL de Python (necesaria para --onefile en Python 3.14+)
+    python_dir = Path(sys.executable).parent
+    python_dll = python_dir / f"python{sys.version_info.major}{sys.version_info.minor}.dll"
+    
+    if python_dll.exists():
+        print(f"[OK] Python DLL encontrada: {python_dll}")
+    else:
+        print(f"[WARN] No se encontró {python_dll.name}, el .exe podría fallar al abrir.")
+
+    # 4. Argumentos de PyInstaller
     # --onefile: Crea un único archivo ejecutable fácil de actualizar y compartir
-    # --windowed: Oculta la consola negra de Windows por defecto (puedes cambiarlo si deseas ver logs en consola)
+    # --windowed: Oculta la consola negra de Windows por defecto
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--onefile",
         "--windowed",
         "--name", "TikTokRequestBot",
+        "--add-binary", f"{python_dll}{os.pathsep}.",
         "--add-data", f"config.example.yaml{os.pathsep}.",
         "--add-data", f"music/LEEME.txt{os.pathsep}music",
         "--collect-all", "customtkinter",
