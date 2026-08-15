@@ -4,7 +4,7 @@ Módulo de Versionado y Configuración del Repositorio
 Define la versión actual instalada y las URLs de comprobación en GitHub.
 """
 
-APP_VERSION = "v1.0.0"
+APP_VERSION = "v1.2.4"
 APP_NAME = "TikTok LIVE SongBot"
 GITHUB_OWNER = "AlvaroJesusC"
 GITHUB_REPO = "TikTokRequestBot"

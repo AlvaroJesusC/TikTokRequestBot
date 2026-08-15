@@ -12,6 +12,14 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 
+# Fix encoding para emojis en consola de Windows
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 def build_executable():
     print("=" * 60)
@@ -36,15 +44,40 @@ def build_executable():
             print(f"[CLEAN] Eliminando carpeta {d.name}...")
             shutil.rmtree(d, ignore_errors=True)
 
-    # 3. Argumentos de PyInstaller
+    # 3. Localizar todas las DLLs base de Python (necesarias para --onefile en Python 3.14+)
+    python_dir = Path(sys.executable).parent
+    binary_args = []
+    for dll in python_dir.glob("*.dll"):
+        binary_args.extend(["--add-binary", f"{dll}{os.pathsep}."])
+        print(f"[OK] Incluyendo DLL de runtime: {dll.name}")
+
+    # 4. Localizar ffmpeg.exe para empaquetarlo y convertir audio a MP3 sin instalar nada
+    ffmpeg_bin = None
+    ffmpeg_cmd = shutil.which("ffmpeg")
+    if ffmpeg_cmd:
+        ffmpeg_bin = Path(ffmpeg_cmd).resolve()
+    else:
+        winget_path = Path(os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Packages"))
+        for candidate in winget_path.glob("**/ffmpeg.exe"):
+            ffmpeg_bin = candidate.resolve()
+            break
+
+    if ffmpeg_bin and ffmpeg_bin.exists():
+        binary_args.extend(["--add-binary", f"{ffmpeg_bin}{os.pathsep}."])
+        print(f"[OK] Incluyendo FFmpeg para conversión nativa de audio MP3: {ffmpeg_bin.name}")
+    else:
+        print("[INFO] FFmpeg no encontrado localmente; el bot lo descargará automáticamente si es necesario.")
+
+    # 5. Argumentos de PyInstaller
     # --onefile: Crea un único archivo ejecutable fácil de actualizar y compartir
-    # --windowed: Oculta la consola negra de Windows por defecto (puedes cambiarlo si deseas ver logs en consola)
+    # --windowed: Oculta la consola negra de Windows por defecto
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--onefile",
         "--windowed",
         "--name", "TikTokRequestBot",
+        *binary_args,
         "--add-data", f"config.example.yaml{os.pathsep}.",
         "--add-data", f"music/LEEME.txt{os.pathsep}music",
         "--collect-all", "customtkinter",

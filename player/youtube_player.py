@@ -12,6 +12,9 @@ import os
 import sys
 import time
 import threading
+import shutil
+import zipfile
+import urllib.request
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Set, Union
 
@@ -189,6 +192,68 @@ class YouTubeAudioPlayer(BaseAudioPlayer):
             "size_mb": round(total_bytes / (1024 * 1024), 2)
         }
 
+    def get_ffmpeg_dir(self) -> Optional[str]:
+        """Obtiene el directorio donde reside ffmpeg.exe (empaquetado o en sistema)."""
+        # 1. En ejecutable empaquetado (PyInstaller _MEIPASS)
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            bundled = Path(sys._MEIPASS) / "ffmpeg.exe"
+            if bundled.exists():
+                return str(sys._MEIPASS)
+
+        # 2. En carpeta local data/bin
+        local_bin = Path("./data/bin/ffmpeg.exe").resolve()
+        if local_bin.exists():
+            return str(local_bin.parent)
+
+        # 3. En PATH del sistema
+        system_ffmpeg = shutil.which("ffmpeg")
+        if system_ffmpeg:
+            return str(Path(system_ffmpeg).resolve().parent)
+
+        return None
+
+    def ensure_ffmpeg(self) -> Optional[str]:
+        """Garantiza que FFmpeg esté disponible, descargando una versión portátil si falta."""
+        existing = self.get_ffmpeg_dir()
+        if existing:
+            return existing
+
+        bin_dir = Path("./data/bin").resolve()
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        target_exe = bin_dir / "ffmpeg.exe"
+
+        if target_exe.exists():
+            return str(bin_dir)
+
+        print("[YT_PLAYER] 📥 Descargando motor FFmpeg portátil para conversión de audio MP3 (una sola vez)...")
+        try:
+            zip_url = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            temp_zip = bin_dir / "ffmpeg_temp.zip"
+            
+            headers = {"User-Agent": "TikTokRequestBot"}
+            req = urllib.request.Request(zip_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as resp, open(temp_zip, "wb") as out_file:
+                shutil.copyfileobj(resp, out_file)
+
+            # Extraer solo ffmpeg.exe
+            with zipfile.ZipFile(temp_zip, "r") as zf:
+                for member in zf.namelist():
+                    if member.endswith("ffmpeg.exe"):
+                        with zf.open(member) as source, open(target_exe, "wb") as target:
+                            shutil.copyfileobj(source, target)
+                        break
+
+            if temp_zip.exists():
+                temp_zip.unlink()
+
+            if target_exe.exists():
+                print(f"[YT_PLAYER] ✅ Motor FFmpeg instalado correctamente en: {target_exe}")
+                return str(bin_dir)
+        except Exception as e:
+            print(f"[YT_PLAYER] ⚠️ No se pudo descargar FFmpeg automáticamente: {e}")
+
+        return None
+
     def search_track(self, query: str) -> Optional[Dict[str, Any]]:
         """
         Busca y descarga estrictamente en formato MP3 puro.
@@ -198,14 +263,11 @@ class YouTubeAudioPlayer(BaseAudioPlayer):
         if not clean_query:
             return None
 
+        ffmpeg_dir = self.ensure_ffmpeg()
+
         ydl_opts = {
             "format": "bestaudio/best",
             "outtmpl": str(self.cache_dir / "%(id)s.%(ext)s"),
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }],
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
@@ -216,6 +278,14 @@ class YouTubeAudioPlayer(BaseAudioPlayer):
                 }
             }
         }
+
+        if ffmpeg_dir:
+            ydl_opts["ffmpeg_location"] = ffmpeg_dir
+            ydl_opts["postprocessors"] = [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }]
 
         search_queries = [f"ytsearch1:{clean_query}", f"ytsearch1:{clean_query} audio", f"ytsearch1:{clean_query} lyrics"]
 

@@ -83,6 +83,7 @@ def apply_update_and_restart(temp_downloaded_path: Path):
         return
 
     current_exe = Path(sys.executable).resolve()
+    current_dir = current_exe.parent
     temp_file = Path(temp_downloaded_path).resolve()
     current_pid = os.getpid()
 
@@ -102,6 +103,9 @@ if "%ERRORLEVEL%"=="0" (
     goto WAIT_PID
 )
 
+echo Esperando liberación de archivos de sistema...
+timeout /t 1 /nobreak > nul
+
 echo Reemplazando ejecutable principal...
 move /Y "{temp_file}" "{current_exe}"
 
@@ -113,6 +117,8 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Iniciando nueva version...
+timeout /t 1 /nobreak > nul
+cd /d "{current_dir}"
 start "" "{current_exe}"
 
 echo Limpieza finalizada.
