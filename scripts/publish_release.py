@@ -42,26 +42,58 @@ def update_version_file(new_version: str):
     print(f"[OK] updater/version.py actualizado a: {new_version}")
 
 
+import shutil
+
+
+def find_executable(name: str) -> str:
+    """Busca un ejecutable considerando rutas conocidas en Windows si no está en PATH."""
+    # 1. Búsqueda estándar
+    found = shutil.which(name)
+    if found:
+        return found
+    
+    # 2. Rutas conocidas comunes en Windows
+    known_paths = {
+        "gh": [
+            r"C:\Program Files\GitHub CLI\gh.exe",
+            r"C:\Program Files (x86)\GitHub CLI\gh.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\GitHub CLI\gh.exe"),
+        ],
+        "git": [
+            r"C:\Program Files\Git\cmd\git.exe",
+            r"C:\Program Files\Git\bin\git.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Git\cmd\git.exe"),
+        ]
+    }
+    
+    for p in known_paths.get(name.lower(), []):
+        if os.path.exists(p):
+            return p
+            
+    return name
+
+
 def run_cmd(cmd, check=True):
     # Asegurar que PATH incluya rutas de usuario y sistema para 'gh' y 'git'
     env = os.environ.copy()
     if sys.platform == "win32":
-        try:
-            import winreg
-            def get_reg_path(hkey, subkey):
-                try:
-                    with winreg.OpenKey(hkey, subkey) as key:
-                        return winreg.QueryValueEx(key, "Path")[0]
-                except Exception:
-                    return ""
-            sys_path = get_reg_path(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
-            user_path = get_reg_path(winreg.HKEY_CURRENT_USER, r"Environment")
-            env["PATH"] = f"{sys_path};{user_path};{env.get('PATH', '')}"
-        except Exception:
-            pass
+        extra_paths = [
+            r"C:\Program Files\GitHub CLI",
+            r"C:\Program Files\Git\cmd",
+            r"C:\Program Files\Git\bin",
+        ]
+        current_path = env.get("PATH", "")
+        env["PATH"] = ";".join(extra_paths) + ";" + current_path
 
-    print(f"\n[RUN] {' '.join(cmd) if isinstance(cmd, list) else cmd}")
-    res = subprocess.run(cmd, cwd=ROOT_DIR, env=env, shell=isinstance(cmd, str))
+    # Resolver nombre de ejecutable al inicio de la lista
+    resolved_cmd = list(cmd) if isinstance(cmd, list) else cmd
+    if isinstance(resolved_cmd, list) and len(resolved_cmd) > 0:
+        resolved_cmd[0] = find_executable(resolved_cmd[0])
+
+    cmd_str = ' '.join(resolved_cmd) if isinstance(resolved_cmd, list) else str(resolved_cmd)
+    print(f"\n[RUN] {cmd_str}")
+    
+    res = subprocess.run(resolved_cmd, cwd=ROOT_DIR, env=env, shell=False)
     if check and res.returncode != 0:
         print(f"\n[ERROR] El comando falló con código {res.returncode}")
         sys.exit(res.returncode)
