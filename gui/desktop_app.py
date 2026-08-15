@@ -412,7 +412,7 @@ class DesktopApp(ctk.CTk):
         add_card = ctk.CTkFrame(left_col, corner_radius=12, fg_color="#131722")
         add_card.grid(row=1, column=0, sticky="ew")
 
-        ctk.CTkLabel(add_card, text="➕ SOLICITUD MANUAL CON COMANDO !play", font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=14, pady=(10, 4))
+        ctk.CTkLabel(add_card, text="➕ SOLICITUD MANUAL - !play", font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=14, pady=(10, 4))
 
         add_input_frame = ctk.CTkFrame(add_card, fg_color="transparent")
         add_input_frame.pack(fill="x", padx=14, pady=(0, 12))
@@ -478,7 +478,7 @@ class DesktopApp(ctk.CTk):
 
         self.log_filter_selector = ctk.CTkSegmentedButton(
             logs_header,
-            values=["Todos", "🎵 Solicitudes (!play)", "💬 Chat"],
+            values=["Todos", "🎵 Solicitudes", "💬 Chat"],
             command=self._on_log_filter_change,
             height=24,
             font=("Segoe UI", 11)
