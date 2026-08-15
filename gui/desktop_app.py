@@ -37,8 +37,8 @@ class DesktopApp(ctk.CTk):
 
         # Ventana de Windows 11
         self.title(f"🎵 TikTok LIVE SongBot {APP_VERSION} - YouTube & Spotify Controller")
-        self.geometry("1120x780")
-        self.minsize(980, 680)
+        self.geometry("1180x820")
+        self.minsize(1040, 700)
 
         self.is_connected = False
         self.current_filter = "Todos"
@@ -49,12 +49,13 @@ class DesktopApp(ctk.CTk):
         self.async_thread = threading.Thread(target=self._run_async_event_loop, daemon=True)
         self.async_thread.start()
 
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        # Grid Principal: Barra Lateral (col 0) + Área de Contenido (col 1)
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        self._create_header()
-        self._create_main_panel()
-        self._create_logs_panel()
+        self._create_sidebar()
+        self._create_main_content()
 
         self._connect_orchestrator_callbacks()
         self.after(1000, self._playback_refresh_loop)
@@ -68,116 +69,183 @@ class DesktopApp(ctk.CTk):
         asyncio.set_event_loop(self.async_loop)
         self.async_loop.run_forever()
 
-    # --- 1. HEADER & BARRA DE CONEXIÓN ---
-    def _create_header(self):
-        header_frame = ctk.CTkFrame(self, corner_radius=12, fg_color="#131722")
-        header_frame.grid(row=0, column=0, padx=16, pady=(16, 8), sticky="ew")
-        header_frame.grid_columnconfigure(3, weight=1)
+    # --- 1. BARRA LATERAL IZQUIERDA (SIDEBAR) ---
+    def _create_sidebar(self):
+        sidebar_frame = ctk.CTkFrame(self, width=270, corner_radius=12, fg_color="#131722")
+        sidebar_frame.grid(row=0, column=0, padx=(16, 8), pady=16, sticky="nsew")
+        sidebar_frame.grid_propagate(False)
 
-        # Brand
-        brand_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        brand_frame.grid(row=0, column=0, padx=12, pady=10, sticky="w")
-        
-        lbl_logo = ctk.CTkLabel(brand_frame, text="🎵", font=("Segoe UI Emoji", 24))
+        # Brand / Logo
+        brand_frame = ctk.CTkFrame(sidebar_frame, fg_color="transparent")
+        brand_frame.pack(fill="x", padx=14, pady=(16, 12))
+
+        lbl_logo = ctk.CTkLabel(brand_frame, text="🎵", font=("Segoe UI Emoji", 26))
         lbl_logo.pack(side="left", padx=(0, 8))
-        
+
         title_frame = ctk.CTkFrame(brand_frame, fg_color="transparent")
-        title_frame.pack(side="left")
-        
+        title_frame.pack(side="left", fill="x", expand=True)
+
         title_row = ctk.CTkFrame(title_frame, fg_color="transparent")
         title_row.pack(anchor="w")
-        ctk.CTkLabel(title_row, text="TikTok LIVE SongBot", font=("Segoe UI", 16, "bold")).pack(side="left")
-        
+        ctk.CTkLabel(title_row, text="TikTok SongBot", font=("Segoe UI", 15, "bold")).pack(side="left")
+
         lbl_ver = ctk.CTkLabel(
             title_row,
             text=APP_VERSION,
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", 9, "bold"),
             fg_color="#1e293b",
             text_color="#38bdf8",
             corner_radius=6,
-            padx=6,
+            padx=5,
             pady=1
         )
-        lbl_ver.pack(side="left", padx=6)
+        lbl_ver.pack(side="left", padx=4)
 
-        ctk.CTkLabel(title_frame, text="Comando: !play <canción>", font=("Segoe UI", 11), text_color="#94a3b8").pack(anchor="w")
+        ctk.CTkLabel(title_frame, text="Comando: !play <canción>", font=("Segoe UI", 10), text_color="#94a3b8").pack(anchor="w")
 
-        # Selector de Modo (Rojo YouTube, Verde Spotify, Amarillo Local)
-        self.mode_selector = ctk.CTkSegmentedButton(
-            header_frame,
-            values=["🔴 YouTube (Auto)", "🟢 Spotify (Beta)", "📁 Local"],
-            command=self._on_mode_change,
-            selected_color="#ef4444",
-            selected_hover_color="#dc2626",
+        # Separador
+        ctk.CTkFrame(sidebar_frame, height=1, fg_color="#1e293b").pack(fill="x", padx=12, pady=6)
+
+        # SECCIÓN 1: CONEXIÓN TIKTOK LIVE
+        ctk.CTkLabel(
+            sidebar_frame,
+            text="📡 CONEXIÓN TIKTOK LIVE",
+            font=("Segoe UI", 10, "bold"),
+            text_color="#94a3b8"
+        ).pack(anchor="w", padx=14, pady=(6, 4))
+
+        self.entry_username = ctk.CTkEntry(
+            sidebar_frame,
+            placeholder_text="@tu_usuario",
+            height=36,
+            font=("Segoe UI", 12)
+        )
+        self.entry_username.pack(fill="x", padx=14, pady=(2, 6))
+        self.entry_username.bind("<Return>", lambda e: self._toggle_connect())
+
+        self.btn_connect = ctk.CTkButton(
+            sidebar_frame,
+            text="⚡ Conectar a Live",
+            command=self._toggle_connect,
+            height=40,
+            fg_color="#fe2c55",
+            hover_color="#e01740",
+            font=("Segoe UI", 13, "bold")
+        )
+        self.btn_connect.pack(fill="x", padx=14, pady=(2, 6))
+
+        self.lbl_status_badge = ctk.CTkLabel(
+            sidebar_frame,
+            text="🔴 Desconectado",
+            fg_color="#261b20",
+            text_color="#ff4757",
+            corner_radius=8,
+            height=32,
             font=("Segoe UI", 11, "bold")
         )
-        self.mode_selector.grid(row=0, column=1, padx=8, pady=10)
+        self.lbl_status_badge.pack(fill="x", padx=14, pady=(2, 8))
 
-        # Botón de Vincular Spotify
+        # Separador
+        ctk.CTkFrame(sidebar_frame, height=1, fg_color="#1e293b").pack(fill="x", padx=12, pady=6)
+
+        # SECCIÓN 2: MOTOR DE REPRODUCCIÓN (Vertical y Grande)
+        ctk.CTkLabel(
+            sidebar_frame,
+            text="🎧 MOTOR DE AUDIO",
+            font=("Segoe UI", 10, "bold"),
+            text_color="#94a3b8"
+        ).pack(anchor="w", padx=14, pady=(6, 6))
+
+        self.btn_mode_yt = ctk.CTkButton(
+            sidebar_frame,
+            text="🔴 YouTube (Auto)",
+            command=lambda: self._select_mode("youtube"),
+            height=42,
+            font=("Segoe UI", 12, "bold"),
+            anchor="w",
+            fg_color="#ef4444",
+            hover_color="#dc2626",
+            text_color="#ffffff"
+        )
+        self.btn_mode_yt.pack(fill="x", padx=14, pady=3)
+
+        self.btn_mode_sp = ctk.CTkButton(
+            sidebar_frame,
+            text="🟢 Spotify (Beta)",
+            command=lambda: self._select_mode("spotify"),
+            height=42,
+            font=("Segoe UI", 12, "bold"),
+            anchor="w",
+            fg_color="#1e293b",
+            hover_color="#334155",
+            text_color="#94a3b8"
+        )
+        self.btn_mode_sp.pack(fill="x", padx=14, pady=3)
+
+        self.btn_mode_local = ctk.CTkButton(
+            sidebar_frame,
+            text="📁 Local (Beta)",
+            command=lambda: self._select_mode("local"),
+            height=42,
+            font=("Segoe UI", 12, "bold"),
+            anchor="w",
+            fg_color="#1e293b",
+            hover_color="#334155",
+            text_color="#94a3b8"
+        )
+        self.btn_mode_local.pack(fill="x", padx=14, pady=3)
+
         self.btn_spotify_auth = ctk.CTkButton(
-            header_frame,
+            sidebar_frame,
             text="🔗 Vincular Spotify",
             command=self._toggle_spotify_link,
-            width=140,
+            height=36,
             fg_color="#1ed760",
             hover_color="#16a34a",
             text_color="#000000",
             font=("Segoe UI", 11, "bold")
         )
-        self.btn_spotify_auth.grid(row=0, column=2, padx=8, pady=10)
+        self.btn_spotify_auth.pack(fill="x", padx=14, pady=(8, 4))
 
-        # Barra de Conexión TikTok LIVE
-        conn_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        conn_frame.grid(row=0, column=4, padx=12, pady=10, sticky="e")
-
-        self.entry_username = ctk.CTkEntry(conn_frame, placeholder_text="@tu_usuario", width=140)
-        self.entry_username.pack(side="left", padx=4)
-        self.entry_username.bind("<Return>", lambda e: self._toggle_connect())
-
-        self.btn_connect = ctk.CTkButton(
-            conn_frame,
-            text="⚡ Conectar",
-            command=self._toggle_connect,
-            width=90,
-            fg_color="#fe2c55",
-            hover_color="#e01740",
-            font=("Segoe UI", 12, "bold")
-        )
-        self.btn_connect.pack(side="left", padx=4)
-
-        self.lbl_status_badge = ctk.CTkLabel(
-            conn_frame,
-            text="🔴 Desconectado",
-            fg_color="#261b20",
-            text_color="#ff4757",
-            corner_radius=8,
-            padx=8,
-            pady=4,
-            font=("Segoe UI", 11, "bold")
-        )
-        self.lbl_status_badge.pack(side="left", padx=6)
+        # Footer inferior en Sidebar
+        footer_frame = ctk.CTkFrame(sidebar_frame, fg_color="transparent")
+        footer_frame.pack(side="bottom", fill="x", padx=14, pady=14)
 
         btn_settings = ctk.CTkButton(
-            conn_frame,
-            text="⚙️",
-            width=36,
+            footer_frame,
+            text="⚙️ Ajustes & Caché",
             command=self._open_settings_dialog,
+            height=40,
             fg_color="#334155",
-            hover_color="#475569"
+            hover_color="#475569",
+            font=("Segoe UI", 12, "bold")
         )
-        btn_settings.pack(side="left", padx=4)
+        btn_settings.pack(fill="x")
 
-    # --- 2. PANEL PRINCIPAL ---
-    def _create_main_panel(self):
-        main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        main_frame.grid(row=1, column=0, padx=16, pady=6, sticky="nsew")
-        main_frame.grid_columnconfigure(0, weight=4)
-        main_frame.grid_columnconfigure(1, weight=5)
-        main_frame.grid_rowconfigure(0, weight=1)
+    # --- 2. CONTENIDO PRINCIPAL (DERECHA) ---
+    def _create_main_content(self):
+        content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        content_frame.grid(row=0, column=1, padx=(8, 16), pady=16, sticky="nsew")
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_rowconfigure(0, weight=6)
+        content_frame.grid_rowconfigure(1, weight=4)
 
-        # COLUMNA IZQUIERDA
-        left_col = ctk.CTkFrame(main_frame, fg_color="transparent")
-        left_col.grid(row=0, column=0, padx=(0, 8), sticky="nsew")
+        # Panel Superior: Reproductor + Cola
+        self._create_top_split(content_frame)
+
+        # Panel Inferior: Chat & Logs
+        self._create_logs_panel(content_frame)
+
+    def _create_top_split(self, parent: ctk.CTkFrame):
+        top_split = ctk.CTkFrame(parent, fg_color="transparent")
+        top_split.grid(row=0, column=0, sticky="nsew", pady=(0, 6))
+        top_split.grid_columnconfigure(0, weight=5)
+        top_split.grid_columnconfigure(1, weight=5)
+        top_split.grid_rowconfigure(0, weight=1)
+
+        # COLUMNA IZQUIERDA: REPRODUCTOR
+        left_col = ctk.CTkFrame(top_split, fg_color="transparent")
+        left_col.grid(row=0, column=0, padx=(0, 6), sticky="nsew")
         left_col.grid_rowconfigure(0, weight=1)
         left_col.grid_columnconfigure(0, weight=1)
 
@@ -296,7 +364,7 @@ class DesktopApp(ctk.CTk):
             if key == "skip":
                 initial_skip_perm = self.config.get("permissions", {}).get("skip_permission", "mods")
                 default_val = "🌍 Todos" if "all" in str(initial_skip_perm).lower() or "todo" in str(initial_skip_perm).lower() else "👥 Mods"
-                
+
                 self.opt_skip_perm = ctk.CTkOptionMenu(
                     f,
                     values=["👥 Mods", "🌍 Todos"],
@@ -345,10 +413,10 @@ class DesktopApp(ctk.CTk):
         add_card.grid(row=1, column=0, sticky="ew")
 
         ctk.CTkLabel(add_card, text="➕ SOLICITUD MANUAL CON COMANDO !play", font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=14, pady=(10, 4))
-        
+
         add_input_frame = ctk.CTkFrame(add_card, fg_color="transparent")
         add_input_frame.pack(fill="x", padx=14, pady=(0, 12))
-        
+
         self.entry_manual_song = ctk.CTkEntry(add_input_frame, placeholder_text="Escribe: !play <canción o artista>...")
         self.entry_manual_song.pack(side="left", fill="x", expand=True, padx=(0, 6))
         self.entry_manual_song.bind("<Return>", lambda e: self._on_add_manual_song())
@@ -366,15 +434,15 @@ class DesktopApp(ctk.CTk):
         self.btn_add_manual.pack(side="right")
 
         # COLUMNA DERECHA: COLA
-        right_col = ctk.CTkFrame(main_frame, corner_radius=12, fg_color="#131722")
-        right_col.grid(row=0, column=1, padx=(8, 0), sticky="nsew")
+        right_col = ctk.CTkFrame(top_split, corner_radius=12, fg_color="#131722")
+        right_col.grid(row=0, column=1, padx=(6, 0), sticky="nsew")
         right_col.grid_rowconfigure(1, weight=1)
         right_col.grid_columnconfigure(0, weight=1)
 
         queue_header = ctk.CTkFrame(right_col, fg_color="transparent")
         queue_header.grid(row=0, column=0, padx=14, pady=(12, 6), sticky="ew")
-        
-        ctk.CTkLabel(queue_header, text="📋 COLA DE ESPERA (FIFO)", font=("Segoe UI", 13, "bold")).pack(side="left")
+
+        ctk.CTkLabel(queue_header, text="📋 COLA DE ESPERA ", font=("Segoe UI", 13, "bold")).pack(side="left")
         self.lbl_queue_count = ctk.CTkLabel(queue_header, text="0 canciones", font=("Segoe UI", 11), text_color="#94a3b8")
         self.lbl_queue_count.pack(side="left", padx=8)
 
@@ -397,9 +465,9 @@ class DesktopApp(ctk.CTk):
         self._render_empty_queue()
 
     # --- 3. PANEL DE LOGS ---
-    def _create_logs_panel(self):
-        logs_card = ctk.CTkFrame(self, corner_radius=12, fg_color="#131722")
-        logs_card.grid(row=2, column=0, padx=16, pady=(6, 16), sticky="nsew")
+    def _create_logs_panel(self, parent: ctk.CTkFrame):
+        logs_card = ctk.CTkFrame(parent, corner_radius=12, fg_color="#131722")
+        logs_card.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
         logs_card.grid_columnconfigure(0, weight=1)
         logs_card.grid_rowconfigure(1, weight=1)
 
@@ -438,7 +506,7 @@ class DesktopApp(ctk.CTk):
             font=("Consolas", 11),
             wrap="word"
         )
-        self.logs_textbox.grid(row=1, column=0, padx=12, pady=0, sticky="nsew")
+        self.logs_textbox.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
         self.logs_textbox.configure(state="disabled")
 
         self.logs_textbox.tag_config("chat", foreground="#f8fafc")
@@ -465,14 +533,7 @@ class DesktopApp(ctk.CTk):
             self.entry_username.insert(0, saved_uid)
 
         saved_mode = self.config.get("player_mode", "youtube")
-        if saved_mode == "youtube":
-            self.mode_selector.set("🔴 YouTube (Auto)")
-        elif saved_mode == "spotify":
-            self.mode_selector.set("🟢 Spotify (Beta)")
-        else:
-            self.mode_selector.set("📁 Local")
-
-        self._update_mode_selector_color(saved_mode)
+        self._update_mode_buttons_ui(saved_mode)
         self._update_spotify_auth_button()
         self._refresh_player_ui()
         self._refresh_queue_ui()
@@ -701,36 +762,52 @@ class DesktopApp(ctk.CTk):
         txt = "🌍 Cualquier usuario (General)" if mode == "all" else "👥 Solo Moderadores y Streamer"
         self.append_log("admin", f"⚙️ Permiso de !skip actualizado a: {txt}")
 
-    def _update_mode_selector_color(self, mode: str):
-        """Aplica color Rojo para YouTube, Verde para Spotify y Amarillo para Local."""
-        if mode == "youtube":
-            self.mode_selector.configure(
-                selected_color="#ef4444",
-                selected_hover_color="#dc2626"
-            )
-        elif mode == "spotify":
-            self.mode_selector.configure(
-                selected_color="#1ed760",
-                selected_hover_color="#16a34a"
-            )
-        else:  # local (amarillo explorador de archivos)
-            self.mode_selector.configure(
-                selected_color="#eab308",
-                selected_hover_color="#ca8a04"
-            )
-
-    def _on_mode_change(self, value: str):
-        if "YouTube" in value:
-            mode = "youtube"
-        elif "Spotify" in value:
-            mode = "spotify"
-        else:
-            mode = "local"
-        self._update_mode_selector_color(mode)
+    def _select_mode(self, mode: str):
+        """Selecciona el motor de audio y actualiza los botones visualmente."""
+        self._update_mode_buttons_ui(mode)
         self.orchestrator.set_player_mode(mode)
         self.config["player_mode"] = mode
         save_config(self.config)
         self._refresh_player_ui()
+
+    def _update_mode_buttons_ui(self, mode: str):
+        """Aplica estilos activos/inactivos a los 3 botones verticales."""
+        # Todos inactivos inicialmente
+        self.btn_mode_yt.configure(
+            fg_color="#1e293b",
+            hover_color="#334155",
+            text_color="#94a3b8"
+        )
+        self.btn_mode_sp.configure(
+            fg_color="#1e293b",
+            hover_color="#334155",
+            text_color="#94a3b8"
+        )
+        self.btn_mode_local.configure(
+            fg_color="#1e293b",
+            hover_color="#334155",
+            text_color="#94a3b8"
+        )
+
+        # Resaltar el botón activo
+        if mode == "youtube":
+            self.btn_mode_yt.configure(
+                fg_color="#ef4444",
+                hover_color="#dc2626",
+                text_color="#ffffff"
+            )
+        elif mode == "spotify":
+            self.btn_mode_sp.configure(
+                fg_color="#1ed760",
+                hover_color="#16a34a",
+                text_color="#000000"
+            )
+        else:  # local
+            self.btn_mode_local.configure(
+                fg_color="#eab308",
+                hover_color="#ca8a04",
+                text_color="#000000"
+            )
 
     def _on_play_pause(self):
         player = self.orchestrator.current_player
