@@ -43,6 +43,7 @@ def build_executable():
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--onefile",
+        "--windowed",
         "--name", "TikTokRequestBot",
         "--add-data", f"config.example.yaml{os.pathsep}.",
         "--add-data", f"music/LEEME.txt{os.pathsep}music",
