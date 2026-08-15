@@ -8,3 +8,5 @@ rapidfuzz>=3.0.0
 mutagen>=1.47.0
 pygame-ce>=2.5.0
 spotipy>=2.24.0
+requests>=2.31.0
+packaging>=24.0

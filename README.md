@@ -29,10 +29,75 @@ En PowerShell:
 pip install -r requirements.txt
 ```
 
-### 2. Iniciar la App
+### 2. Configurar
+Copia `config.example.yaml` a `config.yaml` y rellena tu usuario de TikTok (y opcionalmente las credenciales de Spotify):
+```powershell
+copy config.example.yaml config.yaml
+```
+
+### 3. Iniciar la App
 ```powershell
 python main.py
 ```
+
+---
+
+## 📦 Estructura del Proyecto
+
+```
+bot-musica/
+├── main.py                  # Punto de entrada principal
+├── config.yaml              # Tu configuración local (no se sube a git)
+├── config.example.yaml      # Plantilla de configuración
+├── requirements.txt         # Dependencias de Python
+│
+├── bot/                     # Lógica del bot de TikTok LIVE
+│   ├── config_manager.py    # Carga y guarda config.yaml
+│   ├── command_parser.py    # Parser de comandos del chat (!play, !skip, etc.)
+│   ├── live_bot.py          # Orquestador central del bot
+│   ├── permissions.py       # Gestión de permisos (streamer, mods)
+│   └── queue_manager.py     # Gestión de cola e historial
+│
+├── player/                  # Motores de reproducción
+│   ├── base.py              # Clase base abstracta
+│   ├── youtube_player.py    # Motor YouTube (yt-dlp + pygame)
+│   ├── spotify_player.py    # Motor Spotify Connect (spotipy)
+│   └── local_file_player.py # Motor de archivos locales
+│
+├── gui/                     # Interfaz gráfica de escritorio
+│   └── desktop_app.py       # App principal (CustomTkinter)
+│
+├── updater/                 # Sistema de auto-actualización
+│   ├── version.py           # Versión actual y constantes del repo
+│   ├── checker.py           # Consulta GitHub Releases API
+│   ├── installer.py         # Descarga y reemplazo en caliente del .exe
+│   └── ui.py                # Ventana modal de actualización
+│
+├── scripts/                 # Herramientas auxiliares
+│   ├── build_exe.py         # Compilador a .exe con PyInstaller
+│   ├── build_exe.bat        # Atajo para compilar en Windows
+│   └── test_connection.py   # Test de conectividad con TikTok
+│
+├── music/                   # Carpeta para archivos de música local
+│   └── LEEME.txt
+│
+└── data/                    # Datos locales (caché, historial)
+    └── cache/
+```
+
+---
+
+## 🔄 Sistema de Auto-Actualización
+
+La app comprueba automáticamente al iniciar si hay una nueva versión en [GitHub Releases](https://github.com/AlvaroJesusC/TikTokRequestBot/releases). También puedes comprobarlo manualmente desde **⚙️ Ajustes → 🔍 Buscar Actualizaciones**.
+
+Si ejecutas la versión `.exe`, la actualización se descarga e instala automáticamente con un solo clic, reiniciando la aplicación con la nueva versión.
+
+### Compilar a .exe
+```powershell
+python scripts/build_exe.py
+```
+O haz doble clic en `scripts/build_exe.bat`. El ejecutable se genera en `dist/TikTokRequestBot.exe`.
 
 ---
 
