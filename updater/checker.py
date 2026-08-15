@@ -64,10 +64,15 @@ def check_for_updates() -> Dict[str, Any]:
             "User-Agent": f"{APP_NAME}-Updater"
         }
         
-        response = requests.get(RELEASES_API_URL, headers=headers, timeout=6)
+        # 15s timeout para conexiones lentas
+        response = requests.get(RELEASES_API_URL, headers=headers, timeout=15)
         
         if response.status_code == 404:
             # Aún no hay ninguna release publicada en GitHub
+            return result
+
+        if response.status_code == 403:
+            result["error"] = "Límite temporal de consultas a GitHub alcanzado. Reintenta en unos minutos."
             return result
 
         if response.status_code != 200:
@@ -112,6 +117,10 @@ def check_for_updates() -> Dict[str, Any]:
                     size_bytes = asset.get("size", 0)
                     result["asset_size_mb"] = round(size_bytes / (1024 * 1024), 2)
 
+    except requests.exceptions.Timeout:
+        result["error"] = "Tiempo de espera agotado al conectar con GitHub. Verifica tu conexión."
+    except requests.exceptions.ConnectionError:
+        result["error"] = "No se pudo establecer conexión con GitHub. Revisa tu internet."
     except requests.exceptions.RequestException as req_err:
         result["error"] = f"Error de conexión: {req_err}"
     except Exception as e:
