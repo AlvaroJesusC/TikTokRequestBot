@@ -44,14 +44,12 @@ def build_executable():
             print(f"[CLEAN] Eliminando carpeta {d.name}...")
             shutil.rmtree(d, ignore_errors=True)
 
-    # 3. Localizar la DLL de Python (necesaria para --onefile en Python 3.14+)
+    # 3. Localizar todas las DLLs base de Python (necesarias para --onefile en Python 3.14+)
     python_dir = Path(sys.executable).parent
-    python_dll = python_dir / f"python{sys.version_info.major}{sys.version_info.minor}.dll"
-    
-    if python_dll.exists():
-        print(f"[OK] Python DLL encontrada: {python_dll}")
-    else:
-        print(f"[WARN] No se encontró {python_dll.name}, el .exe podría fallar al abrir.")
+    dll_args = []
+    for dll in python_dir.glob("*.dll"):
+        dll_args.extend(["--add-binary", f"{dll}{os.pathsep}."])
+        print(f"[OK] Incluyendo DLL de runtime: {dll.name}")
 
     # 4. Argumentos de PyInstaller
     # --onefile: Crea un único archivo ejecutable fácil de actualizar y compartir
@@ -62,7 +60,7 @@ def build_executable():
         "--onefile",
         "--windowed",
         "--name", "TikTokRequestBot",
-        "--add-binary", f"{python_dll}{os.pathsep}.",
+        *dll_args,
         "--add-data", f"config.example.yaml{os.pathsep}.",
         "--add-data", f"music/LEEME.txt{os.pathsep}music",
         "--collect-all", "customtkinter",
